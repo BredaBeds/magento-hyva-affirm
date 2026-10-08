@@ -1,0 +1,54 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Affirm's as-low-as element, shared by every message placement; affirm.js renders the text inside it.
+ *
+ * Block data (layout arguments or setData):
+ * - placement     string  product|listing|cart|minicart (required; anything else renders nothing)
+ * - amount_cents  int     amount in cents, rendered as data-amount
+ * - promo_id      string  Affirm promo id ('' for none)
+ * - product       \Magento\Catalog\Api\Data\ProductInterface|null  handed to the hyva_affirm_as_low_as_data event
+ * - attributes    array   extra attributes, see \Hyva\AstoundAffirm\ViewModel\AsLowAs::getAttributes()
+ *
+ * The element reserves one line of height. Except in listings (static markup) it starts invisible: the
+ * placement's component removes "invisible" once affirm.js has rendered into it, and adds "hidden" to collapse it.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ */
+
+use Hyva\AstoundAffirm\Model\Messaging\Placement;
+use Hyva\AstoundAffirm\ViewModel\AsLowAs;
+use Hyva\AstoundAffirm\ViewModel\Sdk;
+use Hyva\Theme\ViewModel\BlockJsDependencies;
+use Magento\Catalog\Api\Data\ProductInterface;
+
+$placement = Placement::tryFrom((string) $block->getData('placement'));
+if ($placement === null) {
+    return;
+}
+$promoId = $block->getData('promo_id');
+$extra = $block->getData('attributes');
+$product = $block->getData('product');
+
+/** @var AsLowAs $asLowAs */
+$asLowAs = $viewModels->require(AsLowAs::class);
+$attributes = $asLowAs->getAttributes(
+    $placement,
+    (int) $block->getData('amount_cents'),
+    is_scalar($promoId) ? (string) $promoId : '',
+    is_array($extra) ? $extra : [],
+    $product instanceof ProductInterface ? $product : null
+);
+if ($attributes === null) {
+    return;
+}
+$attributes['class'] = trim(
+    ($attributes['class'] ?? '') . ' min-h-[1.5rem]' . ($placement === Placement::LISTING ? '' : ' invisible')
+);
+
+$viewModels->require(BlockJsDependencies::class)
+    ->setBlockTemplateDependencyWithPriority($block, Sdk::LOADER_TEMPLATE, Sdk::LOADER_PRIORITY);
+?>
+<p<?= /* @noEscape */ $asLowAs->renderAttributes($attributes) ?>></p>

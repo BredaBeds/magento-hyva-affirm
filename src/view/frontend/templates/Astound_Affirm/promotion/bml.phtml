@@ -1,0 +1,11 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Hyvä fallback for Astound_Affirm::promotion/bml.phtml (Luma promotional banner): renders nothing.
+ *
+ * Affirm's template needs Luma's RequireJS widgets, which Hyvä themes do not load. Hyva_AstoundAffirm removes
+ * Affirm's banner blocks in its hyva_* layout handles and renders its own banners
+ * (Hyva_AstoundAffirm::promotion/banner.phtml); this override keeps dead Luma markup off the page when a theme
+ * or another module adds Affirm's block back.
+ */

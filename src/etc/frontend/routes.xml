@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Hyva_CheckoutAffirm declares the same route id and front name; Magento merges both modules into one route.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <router id="standard">
+        <route id="hyva_affirm" frontName="hyva_affirm">
+            <module name="Hyva_AstoundAffirm"/>
+        </route>
+    </router>
+</config>

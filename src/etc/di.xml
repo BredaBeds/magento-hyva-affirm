@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Hyva\AstoundAffirm\Model\Messaging\AvailabilityInterface"
+                type="Hyva\AstoundAffirm\Model\Messaging\Availability"/>
+    <preference for="Hyva\AstoundAffirm\Model\Messaging\PromoIdInterface"
+                type="Hyva\AstoundAffirm\Model\Messaging\PromoId"/>
+
+    <!-- Affirm's helper loads the session quote in its constructor; defer that until a promo id is needed. -->
+    <type name="Hyva\AstoundAffirm\Model\Messaging\PromoId">
+        <arguments>
+            <argument name="asLowAs" xsi:type="object">Astound\Affirm\Helper\AsLowAs\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Hyva\AstoundAffirm\Model\Messaging\Availability">
+        <arguments>
+            <argument name="checkoutSession" xsi:type="object">Magento\Checkout\Model\Session\Proxy</argument>
+        </arguments>
+    </type>
+</config>

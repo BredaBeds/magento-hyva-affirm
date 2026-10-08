@@ -1,0 +1,46 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Minicart as-low-as message (block hyva.affirm.aslowas.minicart in cart-drawer.totals.before).
+ *
+ * Hyvä renders that container inside the drawer's `<template x-if="itemsCount">`, so this markup holds no script
+ * and, being part of full-page cached pages, nothing visitor-specific. The Alpine component
+ * hyvaAffirmMinicartMessage (js/minicart-message.phtml) takes the amount, promo id and eligibility from the
+ * drawer's customer "cart" section data and requests affirm.js when the drawer opens. The element starts
+ * collapsed until the section data allows it.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ */
+
+use Hyva\AstoundAffirm\ViewModel\CartMessage;
+use Magento\Framework\View\Element\Template;
+
+/** @var CartMessage $cartMessage */
+$cartMessage = $viewModels->require(CartMessage::class);
+if (!$cartMessage->isMinicartAvailable()) {
+    return;
+}
+
+$element = $block->getChildBlock('element');
+if (!$element instanceof Template) {
+    $element = $block->getLayout()->createBlock(Template::class)
+        ->setTemplate('Hyva_AstoundAffirm::promotion/as-low-as.phtml');
+}
+$element->addData([
+    'placement' => 'minicart',
+    'amount_cents' => 0,
+    'promo_id' => '',
+    'attributes' => ['class' => 'hidden'],
+]);
+$elementHtml = trim((string) $element->toHtml());
+if ($elementHtml === '') {
+    return;
+}
+?>
+<div x-data="hyvaAffirmMinicartMessage"
+     class="hyva-affirm-minicart-message mb-2 text-sm"
+     @private-content-loaded.window="onPrivateContentLoaded"
+     @toggle-cart.window="onToggleCart"
+><?= /* @noEscape */ $elementHtml ?></div>

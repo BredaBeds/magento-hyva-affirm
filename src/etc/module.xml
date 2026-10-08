@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Hyva_AstoundAffirm">
+        <sequence>
+            <module name="Astound_Affirm"/>
+            <module name="Hyva_CompatModuleFallback"/>
+            <module name="Hyva_Theme"/>
+            <module name="Magento_Catalog"/>
+            <module name="Magento_Checkout"/>
+        </sequence>
+    </module>
+</config>

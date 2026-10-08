@@ -1,0 +1,62 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Cart page: re-renders Affirm's static placements after Hyvä replaces #maincontent (quantity changes, coupons,
+ * reloads after a cart change elsewhere). affirm.js binds banners (.affirm-site-modal) and renders static messages
+ * only when it becomes ready and on refresh; it does not watch for new elements, so every replacement leaves
+ * unbound copies of the banners, CMS placements and cross-sell listing messages.
+ *
+ * Emitted once per page through page JS dependencies, outside #maincontent, so placements that first appear
+ * after a reload are served too, whatever the range of the cart message (which its own component handles).
+ * Placements already on the page when it loads are left to the loader's auto-load after idle; only placement
+ * elements this script has not seen yet trigger a load and refresh.
+ *
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ * @var \Hyva\Theme\ViewModel\HyvaCsp $hyvaCsp
+ */
+
+use Hyva\AstoundAffirm\ViewModel\Sdk;
+
+if (!$viewModels->require(Sdk::class)->isConfigured()) {
+    return;
+}
+?>
+<script>
+(() => {
+    'use strict';
+    // The placements the loader auto-loads for; elements marked data-hyva-affirm-lazy belong to a component.
+    const selector = '.affirm-as-low-as:not([data-hyva-affirm-lazy]),.affirm-site-modal,.affirm-product-modal';
+    const seen = new WeakSet();
+    const rememberNew = () => {
+        let found = false;
+        document.querySelectorAll(selector).forEach((element) => {
+            if (!seen.has(element)) {
+                seen.add(element);
+                found = true;
+            }
+        });
+        return found;
+    };
+    const refreshNewPlacements = () => {
+        const loader = window.hyvaAffirm;
+        if (!loader || !rememberNew()) {
+            return;
+        }
+        loader.load().then(() => loader.refresh()).catch(() => {});
+    };
+
+    rememberNew();
+    // replaceDomElement() reloads the customer sections, so private-content-loaded follows every replacement;
+    // cart-is-loading {isLoading: false} follows the quantity and coupon posts.
+    window.addEventListener('private-content-loaded', refreshNewPlacements);
+    window.addEventListener('cart-is-loading', (event) => {
+        if (event.detail && event.detail.isLoading === false) {
+            refreshNewPlacements();
+        }
+    });
+})();
+</script>
+<?php if (isset($hyvaCsp)) {
+    $hyvaCsp->registerInlineScript();
+} ?>

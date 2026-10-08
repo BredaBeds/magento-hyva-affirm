@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<!--
+    Home page banners at Affirm's positions: 0 first and 1 last in content, 2 first and 3 last in
+    sidebar.additional (rendered only by page layouts with that sidebar).
+
+    Affirm's cms_index_index.xml also sets layout="1column". It matters only where the page configuration has no
+    page layout: CMS home pages take the CMS page's own layout, which wins over the layout attribute. This handle
+    deliberately sets no layout attribute: as the last handle it would override the theme's own choice too.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Affirm's Luma banners; replaced below. -->
+        <referenceBlock name="affirm_banner_center_top" remove="true"/>
+        <referenceBlock name="affirm_banner_center_bottom" remove="true"/>
+        <referenceBlock name="affirm_banner_sidebar_top" remove="true"/>
+        <referenceBlock name="affirm_banner_bottom" remove="true"/>
+
+        <referenceContainer name="content">
+            <block name="hyva.affirm.banner.home.0"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   before="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">home</argument>
+                    <argument name="position" xsi:type="string">0</argument>
+                </arguments>
+            </block>
+            <block name="hyva.affirm.banner.home.1"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   after="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">home</argument>
+                    <argument name="position" xsi:type="string">1</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <referenceContainer name="sidebar.additional">
+            <block name="hyva.affirm.banner.home.2"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   before="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">home</argument>
+                    <argument name="position" xsi:type="string">2</argument>
+                </arguments>
+            </block>
+            <block name="hyva.affirm.banner.home.3"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   after="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">home</argument>
+                    <argument name="position" xsi:type="string">3</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

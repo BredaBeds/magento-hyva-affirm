@@ -1,0 +1,44 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Sends Affirm's order-confirmed pixel from the element rendered by pixel/order-confirmed.phtml. Rendered once as
+ * a page JS dependency after the window.hyvaAffirm loader; it does not wait for the theme's
+ * init-external-scripts event, which has already fired on the success page.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Hyva\Theme\ViewModel\HyvaCsp $hyvaCsp
+ */
+?>
+<script>
+(() => {
+    'use strict';
+    const track = () => {
+        const element = document.querySelector('[data-hyva-affirm-pixel]');
+        if (!element || element.hasAttribute('data-hyva-affirm-pixel-sent') || !window.hyvaAffirm) {
+            return;
+        }
+        element.setAttribute('data-hyva-affirm-pixel-sent', '');
+        const data = element.dataset;
+        const order = {
+            orderId: data.orderId,
+            currency: data.currency,
+            total: parseInt(data.total, 10),
+            paymentMethod: data.paymentMethod
+        };
+        window.hyvaAffirm.load().then((affirm) => {
+            if (affirm && affirm.analytics && typeof affirm.analytics.trackOrderConfirmed === 'function') {
+                affirm.analytics.trackOrderConfirmed(order, null, data.strict === 'true');
+            }
+        }).catch(() => {});
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', track, {once: true});
+    } else {
+        track();
+    }
+})();
+</script>
+<?php if (isset($hyvaCsp)) {
+    $hyvaCsp->registerInlineScript();
+} ?>

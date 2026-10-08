@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Affirm's Luma product page blocks (as-low-as messages and banners); replaced below. -->
+        <referenceBlock name="aslowas.after.price" remove="true"/>
+        <referenceBlock name="aslowas.before.price" remove="true"/>
+        <referenceBlock name="aslowas.end.product.info" remove="true"/>
+        <referenceBlock name="bml.right.banner.top" remove="true"/>
+        <referenceBlock name="bml.right.banner.top1" remove="true"/>
+        <referenceBlock name="affirm_banner_center_top" remove="true"/>
+        <referenceBlock name="affirm_banner_center_bottom" remove="true"/>
+
+        <!-- Message before or after the price (placement 0 or 1): rendered by
+             Hyva\AstoundAffirm\Plugin\Catalog\Block\Product\PriceAsLowAs, which fills the block's data. -->
+        <referenceBlock name="product.info.price">
+            <block name="hyva.affirm.aslowas.product"
+                   template="Hyva_AstoundAffirm::promotion/as-low-as.phtml"
+                   ifconfig="affirm/affirm_aslowas/enabled_pdp"/>
+        </referenceBlock>
+
+        <!-- Message at the end of the product info (placement 2). -->
+        <referenceContainer name="product.info.additional">
+            <block name="hyva.affirm.aslowas.product.end"
+                   template="Hyva_AstoundAffirm::promotion/product-end.phtml"
+                   ifconfig="affirm/affirm_aslowas/enabled_pdp"
+                   after="-">
+                <block name="hyva.affirm.aslowas.product.end.message"
+                       as="message"
+                       template="Hyva_AstoundAffirm::promotion/as-low-as.phtml"/>
+            </block>
+        </referenceContainer>
+
+        <!-- Product banners at Affirm's positions: 0 first and 1 last in top.container, 2 with the add-to-cart
+             button. -->
+        <referenceContainer name="top.container">
+            <block name="hyva.affirm.banner.product.0"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   before="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">product</argument>
+                    <argument name="position" xsi:type="string">0</argument>
+                </arguments>
+            </block>
+            <block name="hyva.affirm.banner.product.1"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   after="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">product</argument>
+                    <argument name="position" xsi:type="string">1</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+        <!-- product.info.addtocart is a block that renders all of its children. -->
+        <referenceBlock name="product.info.addtocart">
+            <block name="hyva.affirm.banner.product.2"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   after="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">product</argument>
+                    <argument name="position" xsi:type="string">2</argument>
+                </arguments>
+            </block>
+        </referenceBlock>
+    </body>
+</page>

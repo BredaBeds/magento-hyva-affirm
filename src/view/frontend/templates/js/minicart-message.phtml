@@ -1,0 +1,147 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Alpine component hyvaAffirmMinicartMessage for minicart/message.phtml (block hyva.affirm.aslowas.minicart.js in
+ * cart-drawer.bottom, outside the drawer's x-if templates).
+ *
+ * The message is nested in Hyvä's cart drawer component and reads the drawer's `cart` (customer "cart" section)
+ * through methods, which also works with Alpine's CSP build: affirm_amount and affirm_minicart from this module,
+ * mfpValue, learnMore and allow_affirm_quote_aslowas from Affirm. The component mounts after the section data
+ * arrived, so it applies the data on init and again after each `private-content-loaded`. affirm.js is requested
+ * when the drawer opens (`toggle-cart`), never on page load.
+ *
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ * @var \Hyva\Theme\ViewModel\HyvaCsp $hyvaCsp
+ */
+
+use Hyva\AstoundAffirm\ViewModel\CartMessage;
+
+if (!$viewModels->require(CartMessage::class)->isMinicartAvailable()) {
+    return;
+}
+?>
+<script>
+(() => {
+    'use strict';
+    const isInRange = (cents, limits) => {
+        if (typeof cents !== 'number' || !limits || typeof limits !== 'object') {
+            return false;
+        }
+        const min = typeof limits.min === 'number' ? limits.min : null;
+        const max = typeof limits.max === 'number' ? limits.max : null;
+        return (min === null || cents >= min) && (max === null || cents <= max);
+    };
+    const hasContent = (element) => element.children.length > 0 || element.textContent.trim() !== '';
+    const setPromoId = (element, promoId) => {
+        if (promoId) {
+            element.setAttribute('data-promo-id', promoId);
+        } else {
+            element.removeAttribute('data-promo-id');
+        }
+    };
+
+    function hyvaAffirmMinicartMessage() {
+        let message = null;
+        let observer = null;
+        let failed = false;
+
+        return {
+            init() {
+                message = this.$root.querySelector('.affirm-as-low-as');
+                if (!message) {
+                    return;
+                }
+                // Shown once affirm.js has rendered its text into the element.
+                observer = new MutationObserver(() => message.classList.toggle('invisible', !hasContent(message)));
+                observer.observe(message, {childList: true, subtree: true, characterData: true});
+                this.apply();
+                if (this.isDrawerOpen()) {
+                    this.requestSdk();
+                }
+            },
+            destroy() {
+                if (observer) {
+                    observer.disconnect();
+                }
+            },
+            onPrivateContentLoaded() {
+                // The drawer stores the new section data in its own handler of the same event.
+                this.$nextTick(() => this.apply());
+            },
+            onToggleCart() {
+                const detail = this.$event.detail;
+                if (detail && detail.isOpen === false) {
+                    return;
+                }
+                this.requestSdk();
+            },
+            isDrawerOpen() {
+                return this.open === true;
+            },
+            sectionData() {
+                const cart = this.cart;
+                return cart && typeof cart === 'object' ? cart : {};
+            },
+            amountCents() {
+                const cents = this.sectionData().affirm_amount;
+                return typeof cents === 'number' && Number.isInteger(cents) ? cents : null;
+            },
+            isEligible() {
+                const cart = this.sectionData();
+                const settings = cart.affirm_minicart && typeof cart.affirm_minicart === 'object'
+                    ? cart.affirm_minicart
+                    : {};
+                return settings.available === true
+                    && Boolean(cart.allow_affirm_quote_aslowas)
+                    && isInRange(this.amountCents(), settings.limits);
+            },
+            requestSdk() {
+                const loader = window.hyvaAffirm;
+                if (!message || !loader) {
+                    return;
+                }
+                loader.load()
+                    .then(() => {
+                        failed = false;
+                        this.apply();
+                    })
+                    .catch(() => {
+                        failed = true;
+                        this.apply();
+                    });
+            },
+            apply() {
+                if (!message) {
+                    return;
+                }
+                const cart = this.sectionData();
+                const cents = this.amountCents();
+                const eligible = this.isEligible();
+                if (cents !== null) {
+                    message.setAttribute('data-amount', String(cents));
+                }
+                // Affirm's section data blanks the promo id below min_mpp, as on Luma.
+                setPromoId(message, typeof cart.mfpValue === 'string' ? cart.mfpValue : '');
+                if (cart.learnMore === 'true' || cart.learnMore === 'false') {
+                    message.setAttribute('data-learnmore-show', cart.learnMore);
+                }
+                message.classList.toggle('hidden', !eligible || failed);
+                if (eligible && !failed && window.hyvaAffirm) {
+                    window.hyvaAffirm.refresh();
+                }
+            }
+        };
+    }
+
+    const register = () => window.Alpine.data('hyvaAffirmMinicartMessage', hyvaAffirmMinicartMessage);
+    if (window.Alpine) {
+        register();
+    } else {
+        window.addEventListener('alpine:init', register, {once: true});
+    }
+})();
+</script>
+<?php if (isset($hyvaCsp)) {
+    $hyvaCsp->registerInlineScript();
+} ?>

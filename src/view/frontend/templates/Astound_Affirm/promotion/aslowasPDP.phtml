@@ -1,0 +1,11 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Hyvä fallback for Astound_Affirm::promotion/aslowasPDP.phtml (Luma product page as-low-as message): renders
+ * nothing.
+ *
+ * Affirm's template needs Luma's RequireJS widgets, which Hyvä themes do not load. Hyva_AstoundAffirm removes
+ * Affirm's block in its hyva_* layout handles and renders its own product page message; this override keeps
+ * dead Luma markup off the page when a theme or another module adds Affirm's block back.
+ */

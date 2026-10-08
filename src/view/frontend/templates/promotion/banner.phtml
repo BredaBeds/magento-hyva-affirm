@@ -1,0 +1,70 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * One of Affirm's promotional banners: Affirm's banner image as a button that opens Affirm's site modal
+ * (affirm.js handles elements with the class "affirm-site-modal").
+ *
+ * Block data (layout arguments):
+ * - section     string  home|category|product|cart
+ * - position    string  0..3, Affirm's banner position this block stands for
+ * - view_model  \Hyva\AstoundAffirm\ViewModel\Banners (optional; the default view model otherwise)
+ *
+ * Renders only when the banner is configured for this section and position. The developer container HTML
+ * from Affirm's settings (admin-trusted) is printed unescaped around the banner, as Affirm does.
+ *
+ * A button rather than a link: affirm.js opens the modal on click without cancelling the default action, so a
+ * link target would navigate away from the store.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ */
+
+use Hyva\AstoundAffirm\ViewModel\Banners;
+use Hyva\AstoundAffirm\ViewModel\Sdk;
+use Hyva\Theme\ViewModel\BlockJsDependencies;
+
+$banners = $block->getData('view_model');
+if (!$banners instanceof Banners) {
+    /** @var Banners $banners */
+    $banners = $viewModels->require(Banners::class);
+}
+$section = (string) $block->getData('section');
+$position = $block->getData('position');
+if (!is_scalar($position) || !$banners->isVisible($section, (string) $position)) {
+    return;
+}
+$size = $banners->getSize($section);
+$imageUrl = $banners->getImageUrl($section);
+if ($size === null || $imageUrl === '') {
+    return;
+}
+$container = $banners->getContainer($section);
+$promoId = $banners->getPromoId($section);
+
+$viewModels->require(BlockJsDependencies::class)
+    ->setBlockTemplateDependencyWithPriority($block, Sdk::LOADER_TEMPLATE, Sdk::LOADER_PRIORITY);
+?>
+<?= /* @noEscape */ $container['start'] ?>
+<div class="affirm-banner-container">
+    <button type="button"
+            class="affirm-site-modal hyva-affirm-banner max-w-full"
+            data-page-type="<?= $escaper->escapeHtmlAttr($banners->getPageType($section)) ?>"
+            <?php if ($promoId !== ''): ?>data-promo-id="<?= $escaper->escapeHtmlAttr($promoId) ?>"<?php endif; ?>
+            aria-haspopup="dialog"
+            aria-label="<?= $escaper->escapeHtmlAttr((string) __('Learn more about financing with Affirm')) ?>"
+    >
+        <?php /* affirm.js replaces aria-label with the button's innerText (innerHTML when that is empty) plus its
+                 own suffix, so the button needs text of its own. */ ?>
+        <span class="sr-only"><?= $escaper->escapeHtml((string) __('Learn more about financing with Affirm')) ?></span>
+        <img src="<?= $escaper->escapeUrl($imageUrl) ?>"
+             alt=""
+             width="<?= (int) $size['width'] ?>"
+             height="<?= (int) $size['height'] ?>"
+             loading="lazy"
+             class="max-w-full h-auto"
+        >
+    </button>
+</div>
+<?= /* @noEscape */ $container['end'] ?>

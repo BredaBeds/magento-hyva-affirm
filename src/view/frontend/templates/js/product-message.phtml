@@ -1,0 +1,205 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Alpine component `hyvaAffirmProductMessage` of the product page message (x-data on Affirm's
+ * `.affirm-as-low-as` element, see \Hyva\AstoundAffirm\ViewModel\ProductMessage).
+ *
+ * It reads window.hyvaAffirmPriceState (js/price-state-recorder.phtml) on init and on every
+ * `hyva-affirm:price-state` event, reduces the shown price the way Hyvä's price.phtml does, writes it to
+ * data-amount in cents and asks affirm.js to re-render. The element collapses ("hidden") while the amount is
+ * outside Affirm's bounds (data-hyva-affirm-config: min, max, minMpp in cents), while a configurable's
+ * selection resolves to a backordered child (backordered ids) and after the loader gave up; it stays
+ * "invisible", with its line reserved, until affirm.js has rendered into it. The element carries
+ * data-hyva-affirm-lazy: affirm.js is requested (after idle) only once the amount is displayable.
+ *
+ * The functions between the reducer markers are pure; Test/js/price-reducer.mjs holds an identical copy that
+ * the module's Node tests run.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Hyva\Theme\ViewModel\HyvaCsp $hyvaCsp
+ */
+?>
+<script>
+(() => {
+    'use strict';
+
+    /* reducer:start */
+    // A price from a Hyvä price event: a number, a numeric string, {final} (custom option prices of themes that
+    // also carry the regular price) or {amount} (Magento price objects). NaN when the value holds no price.
+    const toPrice = (value) => {
+        let price = value;
+        if (price !== null && typeof price === 'object') {
+            price = price.final !== undefined ? price.final : price.amount;
+        }
+        price = typeof price === 'number' ? price : Number.parseFloat(price);
+        return Number.isFinite(price) ? price : NaN;
+    };
+
+    // The unit price the product page shows, reduced like Hyvä's price.phtml: the latest update-product-final-price
+    // (it includes the tier price for the quantity and, on bundles, the selected bundle items), else the price of the
+    // configurable's current selection, else the server-rendered price; plus the prices of the ACTIVE custom options
+    // from the latest option price map. The quantity is not multiplied in (as in Affirm's Luma widget).
+    const reduceAmount = (state, productId, serverPrice, priceKey) => {
+        const global = (state && state.global) || {};
+        const product = (state && state.products && state.products[productId]) || {};
+        let unit = toPrice(global.finalPrice);
+        if (!unit && product.prices && typeof product.prices === 'object') {
+            unit = toPrice(product.prices[priceKey || 'finalPrice']);
+        }
+        if (!unit) {
+            unit = toPrice(serverPrice) || 0;
+        }
+        const optionPrices = global.optionPrices && typeof global.optionPrices === 'object' ? global.optionPrices : {};
+        const activeOptions = global.activeOptions || {};
+        return Object.keys(activeOptions).reduce((amount, optionId) => {
+            const price = activeOptions[optionId] && Object.prototype.hasOwnProperty.call(optionPrices, optionId)
+                ? toPrice(optionPrices[optionId])
+                : NaN;
+            return Number.isFinite(price) ? amount + price : amount;
+        }, unit);
+    };
+
+    // Whole cents, half up; the intermediate rounding absorbs binary floating point error (19.995 -> 2000).
+    const toCents = (amount) => (Number.isFinite(amount) ? Math.round(Number((amount * 100).toFixed(4))) : 0);
+
+    // Affirm's amount rules for the message: inclusive bounds in cents (null = none) and min_mpp (equal shows).
+    const isDisplayable = (cents, limits) => {
+        const bound = (value) => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+        const min = bound(limits && limits.min);
+        const max = bound(limits && limits.max);
+        const minMpp = bound(limits && limits.minMpp);
+        return cents > 0
+            && (min === null || cents >= min)
+            && (max === null || cents <= max)
+            && (minMpp === null || cents >= minMpp);
+    };
+
+    // Affirm hides the message for backordered configurable children: true when every product the current
+    // selection can still resolve to is backordered (for a complete selection, the selected child).
+    const isBackorderedSelection = (selection, backorderedIds) => {
+        if (!selection || !Array.isArray(backorderedIds) || backorderedIds.length === 0) {
+            return false;
+        }
+        const backordered = backorderedIds.map(String);
+        const candidates = Array.isArray(selection.candidates) ? selection.candidates : [];
+        if (candidates.length > 0) {
+            return candidates.every((id) => backordered.includes(String(id)));
+        }
+        return !!selection.productIndex && backordered.includes(String(selection.productIndex));
+    };
+    /* reducer:end */
+
+    const parseConfig = (json) => {
+        try {
+            const config = JSON.parse(json || '{}');
+            return config && typeof config === 'object' ? config : {};
+        } catch (error) {
+            return {};
+        }
+    };
+
+    const hasContent = (element) => element.children.length > 0 || element.textContent.trim() !== '';
+
+    const hyvaAffirmProductMessage = () => {
+        let observer = null;
+        let onPriceState = null;
+
+        return {
+            init() {
+                const element = this.$el;
+                const productId = element.dataset.hyvaAffirmProductId || '';
+                const config = parseConfig(element.dataset.hyvaAffirmConfig);
+                // update() rewrites data-amount, so keep the server-rendered amount aside: a re-initialised
+                // component (the element was moved, or Alpine re-mounted it) must not add the options twice.
+                if (element.dataset.hyvaAffirmServerAmount === undefined) {
+                    element.dataset.hyvaAffirmServerAmount = element.dataset.amount || '';
+                }
+                const serverPrice = (Number.parseInt(element.dataset.hyvaAffirmServerAmount, 10) || 0) / 100;
+                let sdk = 'idle';
+                let renderedCents = null;
+
+                const reveal = () => element.classList.toggle('invisible', !hasContent(element));
+                const collapse = () => element.classList.add('hidden');
+                const render = (loader) => {
+                    renderedCents = element.dataset.amount;
+                    loader.refresh();
+                };
+                const loadSdk = () => {
+                    const loader = window.hyvaAffirm;
+                    if (!loader) {
+                        sdk = 'failed';
+                        collapse();
+                        return;
+                    }
+                    sdk = 'loading';
+                    loader.whenIdle(() => loader.load()).then(() => {
+                        sdk = 'ready';
+                        render(loader);
+                    }, () => {
+                        sdk = 'failed';
+                        collapse();
+                    });
+                };
+                const update = () => {
+                    if (sdk === 'failed') {
+                        return;
+                    }
+                    const state = window.hyvaAffirmPriceState;
+                    const cents = toCents(reduceAmount(state, productId, serverPrice, config.priceKey));
+                    const selections = state && state.global ? state.global.configurableSelection : null;
+                    const visible = isDisplayable(cents, config)
+                        && !isBackorderedSelection(selections ? selections[productId] : null, config.backordered);
+                    element.dataset.amount = String(cents);
+                    element.classList.toggle('hidden', !visible);
+                    if (!visible) {
+                        return;
+                    }
+                    if (sdk === 'idle') {
+                        loadSdk();
+                    } else if (sdk === 'ready' && renderedCents !== element.dataset.amount) {
+                        render(window.hyvaAffirm);
+                    }
+                };
+
+                onPriceState = (event) => {
+                    const detail = event.detail || {};
+                    if (detail.productId === null || detail.productId === undefined
+                        || String(detail.productId) === productId
+                    ) {
+                        update();
+                    }
+                };
+                window.addEventListener('hyva-affirm:price-state', onPriceState);
+                observer = new MutationObserver(reveal);
+                observer.observe(element, {childList: true, characterData: true, subtree: true});
+
+                const state = window.hyvaAffirmPriceState;
+                if (productId !== '' && state && state.products && !state.products[productId]) {
+                    window.dispatchEvent(new CustomEvent('hyva-affirm:price-state-track', {detail: {productId}}));
+                }
+                reveal();
+                update();
+            },
+            destroy() {
+                if (observer) {
+                    observer.disconnect();
+                }
+                if (onPriceState) {
+                    window.removeEventListener('hyva-affirm:price-state', onPriceState);
+                }
+            },
+        };
+    };
+
+    const register = () => window.Alpine.data('hyvaAffirmProductMessage', hyvaAffirmProductMessage);
+    if (window.Alpine) {
+        register();
+    } else {
+        window.addEventListener('alpine:init', register, {once: true});
+    }
+})();
+</script>
+<?php if (isset($hyvaCsp)) {
+    $hyvaCsp->registerInlineScript();
+} ?>

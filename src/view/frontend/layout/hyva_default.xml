@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <!-- Luma promo styles; the Hyvä placements are styled with Tailwind. -->
+        <remove src="Astound_Affirm::affirm-promo.css"/>
+    </head>
+    <body>
+        <!-- Emits the loader on pages whose HTML (including CMS content) carries Affirm's documented markup.
+             Hyvä marks blockOutputPatternMap as internal; this module's own blocks also register the loader
+             through BlockJsDependencies. -->
+        <referenceBlock name="page-js-dependencies">
+            <arguments>
+                <argument name="blockOutputPatternMap" xsi:type="array">
+                    <item name="hyva_astound_affirm.sdk_loader" xsi:type="array">
+                        <item name="regex" xsi:type="string">/\baffirm-(as-low-as|site-modal|product-modal)\b|data-hyva-affirm/</item>
+                        <item name="template" xsi:type="string">Hyva_AstoundAffirm::js/sdk-loader.phtml</item>
+                        <item name="priority" xsi:type="number">5</item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceContainer name="cart-drawer.totals.before">
+            <block name="hyva.affirm.aslowas.minicart"
+                   template="Hyva_AstoundAffirm::minicart/message.phtml"
+                   ifconfig="affirm/affirm_aslowas/enabled_mcc"/>
+        </referenceContainer>
+        <referenceContainer name="cart-drawer.bottom">
+            <block name="hyva.affirm.aslowas.minicart.js"
+                   template="Hyva_AstoundAffirm::js/minicart-message.phtml"
+                   ifconfig="affirm/affirm_aslowas/enabled_mcc"/>
+        </referenceContainer>
+    </body>
+</page>

@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<!--
+    Category page banners at Affirm's positions: 0 first in top.container, 1 last in content, 2 first in
+    sidebar.main, 3 last in sidebar.additional (the sidebars exist only in page layouts with sidebars).
+
+    Affirm's page layouts move catalog.leftnav after Affirm's bml.right.banner.top. Removing that block here keeps
+    the layered navigation where it is: Magento applies moves before removals, so the move still finds its
+    sibling. This handle does not move catalog.leftnav itself, which would override a theme's own placement.
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Affirm's Luma banners (bml.right.banner.top is declared again for layered categories); replaced below. -->
+        <referenceBlock name="affirm_banner_center_top" remove="true"/>
+        <referenceBlock name="affirm_banner_center_bottom" remove="true"/>
+        <referenceBlock name="bml.right.banner.top" remove="true"/>
+        <referenceBlock name="bml.right.banner.bottom" remove="true"/>
+
+        <referenceContainer name="top.container">
+            <block name="hyva.affirm.banner.category.0"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   before="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">category</argument>
+                    <argument name="position" xsi:type="string">0</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <referenceContainer name="content">
+            <block name="hyva.affirm.banner.category.1"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   after="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">category</argument>
+                    <argument name="position" xsi:type="string">1</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <referenceContainer name="sidebar.main">
+            <block name="hyva.affirm.banner.category.2"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   before="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">category</argument>
+                    <argument name="position" xsi:type="string">2</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <referenceContainer name="sidebar.additional">
+            <block name="hyva.affirm.banner.category.3"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   after="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">category</argument>
+                    <argument name="position" xsi:type="string">3</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

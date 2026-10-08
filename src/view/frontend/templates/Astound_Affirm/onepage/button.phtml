@@ -1,0 +1,12 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Hyvä fallback for Astound_Affirm::onepage/button.phtml (Luma cart "Checkout with Affirm" button): renders
+ * nothing.
+ *
+ * Affirm's template needs Luma's RequireJS widgets, which Hyvä themes do not load, so its button would be a dead
+ * link. Hyva_AstoundAffirm removes Affirm's block in its hyva_* layout handles and renders its own cart button
+ * (Hyva_AstoundAffirm::cart/affirm-button.phtml); this override keeps the dead button off the page when a theme
+ * or another module adds Affirm's block back.
+ */

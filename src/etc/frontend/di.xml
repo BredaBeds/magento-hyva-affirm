@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Template fallback for Astound_Affirm on Hyvä themes and registration in hyva-themes.json. -->
+    <type name="Hyva\CompatModuleFallback\Model\CompatModuleRegistry">
+        <arguments>
+            <argument name="compatModules" xsi:type="array">
+                <item name="hyva_astound_affirm" xsi:type="array">
+                    <item name="original_module" xsi:type="string">Astound_Affirm</item>
+                    <item name="compat_module" xsi:type="string">Hyva_AstoundAffirm</item>
+                </item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Affirm's Luma-only plugins keep working on Luma themes and pass output through on Hyvä themes. -->
+    <preference for="Astound\Affirm\Model\Plugin\Product\ListProduct"
+                type="Hyva\AstoundAffirm\Plugin\Affirm\ListProductThemeAware"/>
+    <preference for="Astound\Affirm\Model\Plugin\Category\View"
+                type="Hyva\AstoundAffirm\Plugin\Affirm\CategoryViewThemeAware"/>
+    <preference for="Astound\Affirm\Model\Plugin\MiniCart\AsLowAs\ConfigPlugin"
+                type="Hyva\AstoundAffirm\Plugin\Affirm\MinicartConfigThemeAware"/>
+    <type name="Hyva\AstoundAffirm\Plugin\Affirm\ListProductThemeAware">
+        <arguments>
+            <argument name="asLowAs" xsi:type="object">Astound\Affirm\Helper\AsLowAs\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Hyva\AstoundAffirm\Plugin\Affirm\CategoryViewThemeAware">
+        <arguments>
+            <argument name="asLowAs" xsi:type="object">Astound\Affirm\Helper\AsLowAs\Proxy</argument>
+        </arguments>
+    </type>
+
+    <!-- Product page message next to the product price block and the bundle summary price. -->
+    <type name="Magento\Catalog\Block\Product\Price">
+        <plugin name="hyva_affirm_price_as_low_as"
+                type="Hyva\AstoundAffirm\Plugin\Catalog\Block\Product\PriceAsLowAs"/>
+    </type>
+    <type name="Magento\Catalog\Block\Product\View">
+        <plugin name="hyva_affirm_price_as_low_as"
+                type="Hyva\AstoundAffirm\Plugin\Catalog\Block\Product\PriceAsLowAs"/>
+    </type>
+
+    <!-- Listing message and its block cache key. -->
+    <type name="Hyva\Theme\ViewModel\ProductListItem">
+        <plugin name="hyva_affirm_listing_as_low_as"
+                type="Hyva\AstoundAffirm\Plugin\Hyva\ProductListItemAsLowAs"/>
+        <plugin name="hyva_affirm_listing_cache_key"
+                type="Hyva\AstoundAffirm\Plugin\Hyva\ProductListItemCacheKey"/>
+    </type>
+
+    <!-- Minicart amount in the cart section, after Affirm's and Magento_Tax's section plugins. -->
+    <type name="Magento\Checkout\CustomerData\Cart">
+        <plugin name="hyva_affirm_cart_amount"
+                type="Hyva\AstoundAffirm\Plugin\Checkout\CustomerData\CartAffirmAmount"
+                sortOrder="100"/>
+    </type>
+    <!-- Affirm's payment helper loads the session quote in its constructor; only cart banners use it. -->
+    <type name="Hyva\AstoundAffirm\ViewModel\Banners">
+        <arguments>
+            <argument name="affirmPaymentHelper" xsi:type="object">Astound\Affirm\Helper\Payment\Proxy</argument>
+        </arguments>
+    </type>
+</config>

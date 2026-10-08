@@ -1,0 +1,12 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Hyvä fallback for Astound_Affirm::onepage/clearcart.phtml (Luma customer-data cart reload on the success
+ * page): renders nothing.
+ *
+ * Affirm's script requires Luma's RequireJS customer-data module, which Hyvä themes do not load. Hyva_AstoundAffirm
+ * removes Affirm's block in its hyva_* layout handles; refreshing the cart after an Affirm order is the checkout
+ * integration's duty. This override keeps the failing script off the page when a theme or another module adds
+ * Affirm's block back.
+ */

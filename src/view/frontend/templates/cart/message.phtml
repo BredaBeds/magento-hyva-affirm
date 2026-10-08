@@ -1,0 +1,54 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Cart page as-low-as message (block hyva.affirm.aslowas.cart in checkout.cart.methods).
+ *
+ * The element is the shared Hyva_AstoundAffirm::promotion/as-low-as.phtml, rendered through the child block with
+ * the alias "element" (or an anonymous block when a layout drops that child). The wrapper is the Alpine
+ * component hyvaAffirmCartMessage (js/cart-message.phtml): it loads affirm.js, follows Hyvä's update-totals
+ * event (amount, cart-size promo id, amount bounds) and refreshes the message after cart reloads.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ */
+
+use Hyva\AstoundAffirm\ViewModel\CartMessage;
+use Magento\Framework\View\Element\Template;
+
+/** @var CartMessage $cartMessage */
+$cartMessage = $viewModels->require(CartMessage::class);
+if (!$cartMessage->isAvailable()) {
+    return;
+}
+
+$element = $block->getChildBlock('element');
+if (!$element instanceof Template) {
+    $element = $block->getLayout()->createBlock(Template::class)
+        ->setTemplate('Hyva_AstoundAffirm::promotion/as-low-as.phtml');
+}
+$amountCents = $cartMessage->getAmountCents();
+$attributes = ['data-hyva-affirm-lazy' => true];
+if (!$cartMessage->isDisplayable($amountCents)) {
+    $attributes['class'] = 'hidden';
+}
+$element->addData([
+    'placement' => 'cart',
+    'amount_cents' => $amountCents,
+    'promo_id' => $cartMessage->getPromoId(),
+    'attributes' => $attributes,
+]);
+$elementHtml = trim((string) $element->toHtml());
+if ($elementHtml === '') {
+    return;
+}
+// Read after the element rendered, so the promo rule its event observers adjusted is reused, not re-dispatched.
+$componentConfig = (string) json_encode($cartMessage->getComponentConfig());
+?>
+<div x-data="hyvaAffirmCartMessage"
+     class="hyva-affirm-cart-message text-sm text-center"
+     data-hyva-affirm-cart="<?= $escaper->escapeHtmlAttr($componentConfig) ?>"
+     @update-totals.window="onUpdateTotals"
+     @cart-is-loading.window="onCartIsLoading"
+><?= /* @noEscape */ $elementHtml ?></div>

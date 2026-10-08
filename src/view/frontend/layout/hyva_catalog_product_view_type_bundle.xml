@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Affirm's Luma bundle summary message; replaced below. -->
+        <referenceBlock name="aslowas.bundle" remove="true"/>
+
+        <!-- On bundle pages product.info.price is a price renderer without this module's message, so the bundle
+             summary carries the only product page message, before or after the configured bundle price. It is
+             rendered by Hyva\AstoundAffirm\Plugin\Catalog\Block\Product\PriceAsLowAs (bundle.summary renders
+             named children only). -->
+        <referenceBlock name="product.info.bundle.price">
+            <block name="hyva.affirm.aslowas.bundle"
+                   template="Hyva_AstoundAffirm::promotion/as-low-as.phtml"
+                   ifconfig="affirm/affirm_aslowas/enabled_pdp"/>
+        </referenceBlock>
+    </body>
+</page>

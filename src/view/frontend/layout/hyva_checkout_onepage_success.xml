@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Affirm's Luma pixel (a RequireJS widget) and Luma minicart cleanup. The pixel is replaced below;
+             refreshing the cart after an Affirm order is the checkout integration's duty, not this module's. -->
+        <referenceBlock name="affirm_pixel_code_confirm" remove="true"/>
+        <referenceBlock name="affirm_clear_mini_cart" remove="true"/>
+
+        <!-- Before page-js-dependencies: the block registers the loader and the pixel script as page JS
+             dependencies while it renders. -->
+        <referenceContainer name="before.body.end">
+            <block name="hyva.affirm.pixel"
+                   template="Hyva_AstoundAffirm::pixel/order-confirmed.phtml"
+                   ifconfig="affirm/affirm_pixel/enabled"
+                   before="page-js-dependencies"/>
+        </referenceContainer>
+    </body>
+</page>

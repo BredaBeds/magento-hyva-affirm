@@ -1,0 +1,39 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Affirm's order-confirmed analytics pixel on the checkout success page (block hyva.affirm.pixel).
+ *
+ * The order data is rendered as data-* attributes. The script js/pixel.phtml, a page JS dependency rendered
+ * after the window.hyvaAffirm loader, loads affirm.js and calls affirm.analytics.trackOrderConfirmed() with them.
+ * The block must sit before page-js-dependencies in before.body.end, otherwise its dependencies are not emitted.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ */
+
+use Hyva\AstoundAffirm\ViewModel\Pixel;
+use Hyva\AstoundAffirm\ViewModel\Sdk;
+use Hyva\Theme\ViewModel\BlockJsDependencies;
+
+/** @var Pixel $pixel */
+$pixel = $viewModels->require(Pixel::class);
+$payload = $pixel->getPayload();
+if ($payload === null) {
+    return;
+}
+
+/** @var BlockJsDependencies $jsDependencies */
+$jsDependencies = $viewModels->require(BlockJsDependencies::class);
+$jsDependencies->setBlockTemplateDependencyWithPriority($block, Sdk::LOADER_TEMPLATE, Sdk::LOADER_PRIORITY);
+$jsDependencies->setBlockTemplateDependencyWithPriority($block, Pixel::SCRIPT_TEMPLATE, Pixel::SCRIPT_PRIORITY);
+?>
+<div hidden
+     data-hyva-affirm-pixel
+     data-order-id="<?= $escaper->escapeHtmlAttr($payload['orderId']) ?>"
+     data-currency="<?= $escaper->escapeHtmlAttr($payload['currency']) ?>"
+     data-total="<?= (int) $payload['total'] ?>"
+     data-payment-method="<?= $escaper->escapeHtmlAttr($payload['paymentMethod']) ?>"
+     data-strict="<?= $pixel->isStrict() ? 'true' : 'false' ?>"
+></div>

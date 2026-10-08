@@ -1,0 +1,45 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Cart "Checkout with Affirm" button (block hyva.affirm.cart.button in checkout.cart.methods).
+ *
+ * A plain form post with the form key: Controller\Cart\Start selects Affirm on the quote and continues to the
+ * checkout. The image and its width come from Affirm's "Checkout Button Code" and "Checkout Button Width"
+ * settings; without an image a text button is shown.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ */
+
+use Hyva\AstoundAffirm\ViewModel\CartButton;
+
+/** @var CartButton $cartButton */
+$cartButton = $viewModels->require(CartButton::class);
+if (!$cartButton->isAvailable()) {
+    return;
+}
+$imageUrl = $cartButton->getImageUrl();
+$imageWidth = $cartButton->getImageWidth();
+$label = (string) __('Checkout with Affirm');
+?>
+<form method="post"
+      action="<?= $escaper->escapeUrl($cartButton->getActionUrl()) ?>"
+      class="hyva-affirm-cart-button flex justify-center"
+>
+    <input type="hidden" name="form_key" value="<?= $escaper->escapeHtmlAttr($cartButton->getFormKey()) ?>">
+    <?php if ($imageUrl !== ''): ?>
+        <button type="submit" class="inline-flex">
+            <img src="<?= $escaper->escapeUrl($imageUrl) ?>"
+                 alt="<?= $escaper->escapeHtmlAttr($label) ?>"
+                 <?php if ($imageWidth > 0): ?>width="<?= (int) $imageWidth ?>"<?php endif; ?>
+                 class="max-w-full h-auto"
+            >
+        </button>
+    <?php else: ?>
+        <button type="submit" class="btn btn-secondary w-full justify-center">
+            <?= $escaper->escapeHtml($label) ?>
+        </button>
+    <?php endif; ?>
+</form>

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Affirm declares its sidebar banner again for layered categories. The banner that replaces it is
+             declared once for every category page in hyva_catalog_category_view.xml. -->
+        <referenceBlock name="bml.right.banner.top" remove="true"/>
+    </body>
+</page>

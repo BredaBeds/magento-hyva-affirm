@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Affirm's Luma cart blocks (Astound_Affirm checkout_cart_index.xml), replaced below. -->
+        <referenceBlock name="affirm.cart.shortcut.buttons" remove="true"/>
+        <referenceBlock name="aslowas.checkout.cart.widget" remove="true"/>
+        <referenceBlock name="affirm_banner_methods_top" remove="true"/>
+        <referenceBlock name="affirm_banner_methods_bottom" remove="true"/>
+        <referenceBlock name="affirm_banner_center_top" remove="true"/>
+        <referenceBlock name="affirm_banner_center_bottom" remove="true"/>
+
+        <!-- Hyvä replaces #maincontent after cart changes and affirm.js does not see the new placements.
+             js/cart-refresh.phtml re-renders them. It and the loader are page JS dependencies (rendered outside
+             #maincontent) of the banner and message blocks below. Blocks register them whenever they render, even
+             when they print nothing; the blocks in "content" render on every cart page while their setting is on,
+             so a banner or message that first appears after a reload still finds both. The pattern adds the script
+             for other placements on the page (cross-sell listing messages, CMS content). -->
+        <referenceBlock name="page-js-dependencies">
+            <arguments>
+                <argument name="blockOutputPatternMap" xsi:type="array">
+                    <item name="hyva_astound_affirm.cart_refresh" xsi:type="array">
+                        <item name="regex" xsi:type="string">/\baffirm-(as-low-as|site-modal|product-modal)\b/</item>
+                        <item name="template" xsi:type="string">Hyva_AstoundAffirm::js/cart-refresh.phtml</item>
+                        <item name="priority" xsi:type="number">10</item>
+                    </item>
+                </argument>
+            </arguments>
+        </referenceBlock>
+
+        <referenceContainer name="content">
+            <block name="hyva.affirm.banner.cart.0"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   before="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">cart</argument>
+                    <argument name="position" xsi:type="string">0</argument>
+                    <argument name="hyva_js_template_dependencies" xsi:type="array">
+                        <item name="Hyva_AstoundAffirm::js/sdk-loader.phtml" xsi:type="number">5</item>
+                        <item name="Hyva_AstoundAffirm::js/cart-refresh.phtml" xsi:type="number">10</item>
+                    </argument>
+                </arguments>
+            </block>
+            <block name="hyva.affirm.banner.cart.1"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   after="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">cart</argument>
+                    <argument name="position" xsi:type="string">1</argument>
+                    <argument name="hyva_js_template_dependencies" xsi:type="array">
+                        <item name="Hyva_AstoundAffirm::js/sdk-loader.phtml" xsi:type="number">5</item>
+                        <item name="Hyva_AstoundAffirm::js/cart-refresh.phtml" xsi:type="number">10</item>
+                    </argument>
+                </arguments>
+            </block>
+
+            <!-- Prints nothing. checkout.cart.methods renders only for a cart with items, but an empty cart page
+                 is replaced by one with items when the cart changes elsewhere (Hyvä's reloadCartContent), so the
+                 message's scripts are registered here, in a container every cart page renders. -->
+            <block name="hyva.affirm.aslowas.cart.scripts" ifconfig="affirm/affirm_aslowas/enabled_cc">
+                <arguments>
+                    <argument name="hyva_js_template_dependencies" xsi:type="array">
+                        <item name="Hyva_AstoundAffirm::js/sdk-loader.phtml" xsi:type="number">5</item>
+                        <item name="Hyva_AstoundAffirm::js/cart-message.phtml" xsi:type="number">10</item>
+                        <item name="Hyva_AstoundAffirm::js/cart-refresh.phtml" xsi:type="number">10</item>
+                    </argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+
+        <!-- Only blocks may be added here: the cart renders each child of checkout.cart.methods as a block. -->
+        <referenceContainer name="checkout.cart.methods">
+            <block name="hyva.affirm.banner.cart.2"
+                   template="Hyva_AstoundAffirm::promotion/banner.phtml"
+                   ifconfig="affirm/affirm_promo/enabled"
+                   before="-">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Hyva\AstoundAffirm\ViewModel\Banners</argument>
+                    <argument name="section" xsi:type="string">cart</argument>
+                    <argument name="position" xsi:type="string">2</argument>
+                    <argument name="hyva_js_template_dependencies" xsi:type="array">
+                        <item name="Hyva_AstoundAffirm::js/sdk-loader.phtml" xsi:type="number">5</item>
+                        <item name="Hyva_AstoundAffirm::js/cart-refresh.phtml" xsi:type="number">10</item>
+                    </argument>
+                </arguments>
+            </block>
+
+            <!-- The component script is registered by hyva.affirm.aslowas.cart.scripts. -->
+            <block name="hyva.affirm.aslowas.cart"
+                   template="Hyva_AstoundAffirm::cart/message.phtml"
+                   ifconfig="affirm/affirm_aslowas/enabled_cc"
+                   after="checkout.cart.methods.onepage.bottom.php-cart">
+                <arguments>
+                    <argument name="hyva_js_template_dependencies" xsi:type="array">
+                        <item name="Hyva_AstoundAffirm::js/sdk-loader.phtml" xsi:type="number">5</item>
+                        <item name="Hyva_AstoundAffirm::js/cart-refresh.phtml" xsi:type="number">10</item>
+                    </argument>
+                </arguments>
+                <block name="hyva.affirm.aslowas.cart.element"
+                       as="element"
+                       template="Hyva_AstoundAffirm::promotion/as-low-as.phtml"/>
+            </block>
+
+            <block name="hyva.affirm.cart.button"
+                   template="Hyva_AstoundAffirm::cart/affirm-button.phtml"
+                   ifconfig="payment/affirm_gateway/enable_checkout_button"
+                   before="checkout.cart.shortcut.buttons"/>
+        </referenceContainer>
+    </body>
+</page>

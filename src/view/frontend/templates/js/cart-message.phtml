@@ -1,0 +1,158 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Alpine component hyvaAffirmCartMessage for cart/message.phtml.
+ *
+ * Emitted once per page through page JS dependencies, outside #maincontent: Hyvä replaces #maincontent after
+ * every cart change (with or without cart-is-loading events), and the replacement re-initialises the component.
+ * On `update-totals` (detail.data = Magento's cart totals) it sets data-amount from grand_total, applies
+ * Affirm's cart-size promo rule to base_grand_total and re-checks the amount bounds; affirm.js is requested
+ * after idle on init and refreshed after every change.
+ *
+ * @var \Hyva\Theme\ViewModel\HyvaCsp $hyvaCsp
+ */
+?>
+<script>
+(() => {
+    'use strict';
+    /* hyva-affirm-cart:start */
+    const toCents = (value) => {
+        const amount = typeof value === 'string' ? parseFloat(value) : value;
+        if (typeof amount !== 'number' || !Number.isFinite(amount)) {
+            return null;
+        }
+        return Math.round(Number(amount.toFixed(2)) * 100);
+    };
+    const isInRange = (cents, limits) => {
+        if (typeof cents !== 'number' || !limits || typeof limits !== 'object') {
+            return false;
+        }
+        const min = typeof limits.min === 'number' ? limits.min : null;
+        const max = typeof limits.max === 'number' ? limits.max : null;
+        return (min === null || cents >= min) && (max === null || cents <= max);
+    };
+    // Affirm's cart-size rule: the in-range promo id while min <= base grand total <= max. Returns null when
+    // there is nothing to switch (a higher-precedence promo id applies, or both promo ids are equal).
+    const selectPromoId = (rule, baseGrandTotal) => {
+        if (!rule || typeof rule !== 'object' || rule.higherPrecedenceApplies
+            || typeof rule.promoInRange !== 'string' || typeof rule.promoOutOfRange !== 'string'
+            || rule.promoInRange === rule.promoOutOfRange
+            || typeof rule.min !== 'number' || typeof rule.max !== 'number'
+        ) {
+            return null;
+        }
+        const total = typeof baseGrandTotal === 'string' ? parseFloat(baseGrandTotal) : baseGrandTotal;
+        if (typeof total !== 'number' || !Number.isFinite(total)) {
+            return null;
+        }
+        return total >= rule.min && total <= rule.max ? rule.promoInRange : rule.promoOutOfRange;
+    };
+    /* hyva-affirm-cart:end */
+
+    const hasContent = (element) => element.children.length > 0 || element.textContent.trim() !== '';
+    const setPromoId = (element, promoId) => {
+        if (promoId) {
+            element.setAttribute('data-promo-id', promoId);
+        } else {
+            element.removeAttribute('data-promo-id');
+        }
+    };
+    const readConfig = (element) => {
+        try {
+            const config = JSON.parse(element.getAttribute('data-hyva-affirm-cart') || '{}');
+            return config && typeof config === 'object' ? config : {};
+        } catch (error) {
+            return {};
+        }
+    };
+
+    function hyvaAffirmCartMessage() {
+        let message = null;
+        let observer = null;
+        let config = {};
+        let inRange = false;
+        let failed = false;
+
+        const render = () => {
+            message.classList.toggle('hidden', !inRange || failed);
+        };
+        const request = (afterIdle) => {
+            const loader = window.hyvaAffirm;
+            if (!loader) {
+                failed = true;
+                render();
+                return;
+            }
+            (afterIdle ? loader.whenIdle(() => loader.load()) : loader.load())
+                .then(() => {
+                    failed = false;
+                    render();
+                    loader.refresh();
+                })
+                .catch(() => {
+                    failed = true;
+                    render();
+                });
+        };
+
+        return {
+            init() {
+                message = this.$root.querySelector('.affirm-as-low-as');
+                if (!message) {
+                    return;
+                }
+                config = readConfig(this.$root);
+                inRange = !message.classList.contains('hidden');
+                // Shown once affirm.js has rendered its text into the element.
+                observer = new MutationObserver(() => message.classList.toggle('invisible', !hasContent(message)));
+                observer.observe(message, {childList: true, subtree: true, characterData: true});
+                if (inRange) {
+                    request(true);
+                }
+            },
+            destroy() {
+                if (observer) {
+                    observer.disconnect();
+                }
+            },
+            onUpdateTotals() {
+                const detail = this.$event.detail;
+                const totals = detail && detail.data;
+                if (!message || !totals || typeof totals !== 'object') {
+                    return;
+                }
+                const cents = toCents(totals.grand_total);
+                if (cents !== null) {
+                    message.setAttribute('data-amount', String(cents));
+                    inRange = isInRange(cents, config.limits);
+                }
+                const promoId = selectPromoId(config.cartRule, totals.base_grand_total);
+                if (promoId !== null) {
+                    setPromoId(message, promoId);
+                }
+                render();
+                if (inRange) {
+                    request(false);
+                }
+            },
+            onCartIsLoading() {
+                const detail = this.$event.detail;
+                if (message && inRange && detail && detail.isLoading === false && window.hyvaAffirm) {
+                    window.hyvaAffirm.refresh();
+                }
+            }
+        };
+    }
+
+    const register = () => window.Alpine.data('hyvaAffirmCartMessage', hyvaAffirmCartMessage);
+    if (window.Alpine) {
+        register();
+    } else {
+        window.addEventListener('alpine:init', register, {once: true});
+    }
+})();
+</script>
+<?php if (isset($hyvaCsp)) {
+    $hyvaCsp->registerInlineScript();
+} ?>

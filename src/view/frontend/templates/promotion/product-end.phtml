@@ -1,0 +1,35 @@
+<?php declare(strict_types=1);
+/**
+ * Copyright (c) 2026 Breda Beds. Licensed under the MIT licence; see LICENSE.
+ *
+ * Product page message at the end of the product info (affirm/affirm_aslowas_developer/placement = 2).
+ *
+ * Renders its child "message" (the shared template promotion/as-low-as.phtml) for the current product. Nothing
+ * renders for grouped products (no message) and bundles (their message is in the bundle summary), or when the
+ * page has no product price block.
+ *
+ * @var \Magento\Framework\View\Element\Template $block
+ * @var \Hyva\Theme\Model\ViewModelRegistry $viewModels
+ */
+
+use Hyva\AstoundAffirm\ViewModel\ProductMessage;
+use Hyva\Theme\ViewModel\CurrentProduct;
+use Magento\Framework\View\Element\AbstractBlock;
+
+/** @var CurrentProduct $currentProduct */
+$currentProduct = $viewModels->require(CurrentProduct::class);
+$message = $block->getChildBlock('message');
+if (!$currentProduct->exists() || !$message instanceof AbstractBlock) {
+    return;
+}
+$product = $currentProduct->get();
+
+/** @var ProductMessage $productMessage */
+$productMessage = $viewModels->require(ProductMessage::class);
+if (!$productMessage->canRenderEndOfInfo($product, $block->getLayout())
+    || !$productMessage->prepareMessageBlock($message, $product)
+) {
+    return;
+}
+?>
+<?= /* @noEscape */ $block->getChildHtml('message') ?>
