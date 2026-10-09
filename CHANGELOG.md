@@ -22,7 +22,10 @@ All notable changes to this project are documented in this file. The format foll
 - Affirm's promotional banners on home, category, product and cart pages at Affirm's positions, inside the developer
   container HTML, as buttons that open Affirm's site modal.
 - Cart "Checkout with Affirm" button: a form post to `hyva_affirm/cart/start` that selects Affirm on the quote and
-  continues to the checkout (Hyvä Checkout's payment step when available).
+  continues to the checkout (Hyvä Checkout's payment step when available). It also records the choice in the
+  checkout session (`hyva_affirm_preselect_quote_id`, the quote id; removed on failure) so a checkout integration
+  can re-apply it after the checkout's own default method, such as Hyvä Checkout's "Enable first available payment
+  method" (`Hyva_CheckoutAffirm` does).
 - Order-confirmed pixel on the success page with Affirm's Luma payload; suppressed in sandbox unless the hidden
   developer flag `affirm/hyva/pixel_in_sandbox` is set.
 - Detection of Affirm's documented markup in CMS pages, CMS blocks and Page Builder content.
@@ -51,6 +54,10 @@ All notable changes to this project are documented in this file. The format foll
 
 ### Fixed
 
+- Cart button: with Hyvä Checkout's "Enable first available payment method" on, a shopper on a new session (for
+  example a guest) reached the payment step with the first available method checked instead of Affirm, because
+  Hyvä Checkout replaced the method on the session's first checkout page load. The button now records its choice
+  for the checkout integration (see Added and the README's cart button section).
 - Cart page: banners, CMS placements and cross-sell listing messages stayed dead (banner buttons without a click
   handler, empty message lines) after every `#maincontent` replacement unless the cart message was in range. The
   new page script `js/cart-refresh.phtml` refreshes affirm.js whenever a cart reload brings static placements it

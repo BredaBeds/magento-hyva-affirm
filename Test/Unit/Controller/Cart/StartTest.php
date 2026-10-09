@@ -9,6 +9,7 @@ namespace Hyva\AstoundAffirm\Test\Unit\Controller\Cart;
 use Astound\Affirm\Api\CheckoutPaymentManagerInterface;
 use Hyva\AstoundAffirm\Controller\Cart\Start;
 use Hyva\AstoundAffirm\ViewModel\CartButton;
+use Magento\Checkout\Model\Session as CheckoutSession;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\CsrfAwareActionInterface;
@@ -19,6 +20,7 @@ use Magento\Framework\Message\ManagerInterface as MessageManager;
 use Magento\Framework\Module\Manager as ModuleManager;
 use Magento\Framework\ObjectManagerInterface;
 use Magento\Framework\Phrase;
+use Magento\Quote\Model\Quote;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -41,6 +43,15 @@ class StartTest extends TestCase
 
     private LoggerInterface&MockObject $logger;
 
+    private CheckoutSession&MockObject $checkoutSession;
+
+    private Quote&MockObject $quote;
+
+    /**
+     * @var array<string, mixed>
+     */
+    private array $session = [];
+
     private Start $controller;
 
     protected function setUp(): void
@@ -54,6 +65,24 @@ class StartTest extends TestCase
         $this->moduleManager = $this->createMock(ModuleManager::class);
         $this->objectManager = $this->createMock(ObjectManagerInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
+        $this->quote = $this->createMock(Quote::class);
+        $this->quote->method('getId')->willReturn(497503);
+        $this->checkoutSession = $this->getMockBuilder(CheckoutSession::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getQuote', '__call'])
+            ->getMock();
+        $this->checkoutSession->method('getQuote')->willReturn($this->quote);
+        // SessionManager forwards setData()/unsetData() to the session storage through __call().
+        $this->checkoutSession->method('__call')->willReturnCallback(function (string $method, array $args) {
+            if ($method === 'setData') {
+                $this->session[$args[0]] = $args[1];
+            } elseif ($method === 'unsetData') {
+                unset($this->session[$args[0]]);
+            } else {
+                $this->fail('Unexpected session call ' . $method);
+            }
+            return $this->checkoutSession;
+        });
 
         $this->controller = new Start(
             $redirectFactory,
@@ -62,7 +91,8 @@ class StartTest extends TestCase
             $this->messageManager,
             $this->moduleManager,
             $this->objectManager,
-            $this->logger
+            $this->logger,
+            $this->checkoutSession
         );
     }
 
@@ -123,6 +153,59 @@ class StartTest extends TestCase
         $this->controller->execute();
     }
 
+    public function testSuccessRecordsTheChoiceForTheCheckout(): void
+    {
+        $this->moduleManager->method('isEnabled')->willReturn(false);
+        $this->givenInitPaymentReturns(true);
+        $this->redirect->method('setPath')->willReturnSelf();
+
+        $this->controller->execute();
+
+        $this->assertSame('hyva_affirm_preselect_quote_id', Start::PRESELECT_SESSION_KEY);
+        $this->assertSame(497503, $this->session[Start::PRESELECT_SESSION_KEY]);
+    }
+
+    public function testARecordingFailureStillOpensTheCheckout(): void
+    {
+        $this->moduleManager->method('isEnabled')->willReturn(false);
+        $this->cartButton->method('isAvailable')->willReturn(true);
+        $this->checkoutPaymentManager->method('initPayment')->willReturn(true);
+        $session = $this->getMockBuilder(CheckoutSession::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getQuote', '__call'])
+            ->getMock();
+        $session->method('getQuote')->willThrowException(new \RuntimeException('session storage down'));
+        $redirectFactory = $this->createMock(RedirectFactory::class);
+        $redirectFactory->method('create')->willReturn($this->redirect);
+        $controller = new Start(
+            $redirectFactory,
+            $this->checkoutPaymentManager,
+            $this->cartButton,
+            $this->messageManager,
+            $this->moduleManager,
+            $this->objectManager,
+            $this->logger,
+            $session
+        );
+        $this->logger->expects($this->once())->method('warning')
+            ->with($this->stringContains('could not be recorded'), $this->arrayHasKey('error'));
+        $this->messageManager->expects($this->never())->method('addErrorMessage');
+        $this->redirect->expects($this->once())->method('setPath')->with('checkout', [])->willReturnSelf();
+
+        $controller->execute();
+    }
+
+    public function testFailureForgetsAnEarlierChoice(): void
+    {
+        $this->session[Start::PRESELECT_SESSION_KEY] = 497503;
+        $this->cartButton->method('isAvailable')->willReturn(false);
+        $this->expectCartRedirectWithError();
+
+        $this->controller->execute();
+
+        $this->assertArrayNotHasKey(Start::PRESELECT_SESSION_KEY, $this->session);
+    }
+
     public function testUnavailableReturnsToTheCartWithoutTouchingTheQuote(): void
     {
         $this->cartButton->method('isAvailable')->willReturn(false);
@@ -138,6 +221,8 @@ class StartTest extends TestCase
         $this->expectCartRedirectWithError();
 
         $this->controller->execute();
+
+        $this->assertArrayNotHasKey(Start::PRESELECT_SESSION_KEY, $this->session);
     }
 
     public function testLocalizedExceptionReturnsToTheCart(): void
@@ -149,6 +234,8 @@ class StartTest extends TestCase
         $this->expectCartRedirectWithError();
 
         $this->controller->execute();
+
+        $this->assertArrayNotHasKey(Start::PRESELECT_SESSION_KEY, $this->session);
     }
 
     public function testUnexpectedErrorsReturnToTheCart(): void

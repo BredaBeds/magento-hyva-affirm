@@ -264,6 +264,19 @@ Checkout is enabled and its active checkout has a `payment` step, the redirect a
 Checkout preselects Affirm. On any failure the shopper returns to the cart with the message "Checkout with Affirm
 is not available for this cart. Please choose another payment method."
 
+**Preselection contract (checkout session key `hyva_affirm_preselect_quote_id`).** A checkout may replace the
+quote's payment method before the shopper sees it. Hyvä Checkout does so with its setting "Enable first available
+payment method" (`hyva_themes_checkout/developer/experimental/enable_first_payment_method_available`): on the first
+checkout page load of a session it sets the first available method over the one the button selected, so without
+help a guest (or any shopper on a new session) reaches the payment step with another method checked. The
+controller therefore also records the shopper's choice: after a successful selection it stores the quote id (int)
+in the checkout session (`Magento\Checkout\Model\Session`) under `hyva_affirm_preselect_quote_id`
+(`Start::PRESELECT_SESSION_KEY`), and removes the key on every failure. This module only writes the key; it has no
+dependency on Hyvä Checkout. [`Hyva_CheckoutAffirm`](https://github.com/BredaBeds/magento-hyva-checkout-affirm)
+reads it when Hyvä Checkout builds its payment method list, selects Affirm once if Affirm is available for that
+quote, and removes it; a shopper who then picks another method keeps it. Other checkout integrations can honour
+the same key. Without such a reader the key is unused and lives as long as the checkout session.
+
 ### Order-confirmed pixel
 
 Block `hyva.affirm.pixel` in `before.body.end` of the success page (declared before `page-js-dependencies`). It
@@ -644,12 +657,15 @@ affirm.js rendered.
   and in the price index, and the message includes it, but the cart does not charge it.
 - **Themes that dispatch custom option prices as objects** (`{final, regular}`): Hyvä's bundle price box cannot
   read them and leaves paid options out of the shown bundle price; the message includes them.
+- **Hyvä Checkout "Enable first available payment method"** (experimental setting, off by default) replaces the
+  method the cart button selected on the first checkout page load of a session. The button's choice survives it
+  through the [preselection contract](#cart-button) with `Hyva_CheckoutAffirm`.
 
 ## Testing
 
 | Suite | Command | Result on 2026-10-08 |
 |---|---|---|
-| PHP unit tests (PHPUnit 10.5) | on a Magento installation: `vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist <package>/Test/Unit` | 243 tests pass |
+| PHP unit tests (PHPUnit 10.5) | on a Magento installation: `vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist <package>/Test/Unit` | 246 tests pass |
 | CI harness, no Magento installation needed | see [`Test/ci/README.md`](Test/ci/README.md) | all steps pass, reproduced locally with PHP 8.5 against Magento 2.4.9 and 2.4.7-p10 |
 | JavaScript (Node 20+, `node:test`) | `node --test Test/js/*.test.mjs` (pass the files: newer Node releases read a directory argument as a module path) | 66 tests pass |
 | Static analysis | php-cs-fixer (Magento rule set), PHPCS `Magento2` (errors fail, warnings reported), PHPStan level 6, PHPCompatibility for PHP 8.1+ | clean |
@@ -674,6 +690,7 @@ recorder copies under `Test/js/` are identical to the template code.
 | Category and search listings; listing cache key changes with promo settings | pass |
 | Cart page: quantity change, shipping estimate, amount bounds, cart-size rule entering and leaving the range with and without a higher-precedence promo id | pass |
 | Cart button: POST lands on Hyvä Checkout 1.3.14's payment step with Affirm preselected | pass |
+| Cart button with `Hyva_CheckoutAffirm` and Hyvä's "Enable first available payment method" on (re-run 2026-10-08): guest who then fills the address and shipping method; logged-in customer with saved addresses; checkout opening at its first step (Affirm applied when step navigation builds the payment list); shopper who picks another method afterwards keeps it; normal checkout without the button still preselects the first available method | pass |
 | Minicart: open, add, remove, warm full-page cache, no affirm.js until the drawer opens | pass |
 | Banners at every section and position; modal opens without navigation; keyboard and focus return | pass |
 | Pixel suppressed in sandbox; with the developer flag, exactly one `trackOrderConfirmed` call with the correct payload (against an affirm.js stub) | pass |
