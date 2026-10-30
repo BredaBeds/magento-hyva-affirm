@@ -20,7 +20,7 @@ class SdkTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->config = $this->createMock(Config::class);
+        $this->config = $this->configMock();
         $this->config->method('getScriptUrl')->willReturn('https://cdn1-sandbox.affirm.com/js/v2/affirm.js');
         $this->config->method('getLocale')->willReturn('en_US');
         $this->config->method('getCountryCode')->willReturn('USA');
@@ -68,5 +68,20 @@ class SdkTest extends TestCase
         $this->logger->expects($this->once())->method('warning');
 
         $this->assertFalse((new Sdk($this->config, $this->logger))->isConfigured());
+    }
+
+    /**
+     * Config mock whose canLoadAffirmJs() stays real: it combines the stubbed isActive, key and currency checks.
+     *
+     * @return Config&MockObject
+     */
+    private function configMock(): Config
+    {
+        $stubbed = array_diff(get_class_methods(Config::class), ['__construct', 'canLoadAffirmJs']);
+
+        return $this->getMockBuilder(Config::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(array_values($stubbed))
+            ->getMock();
     }
 }

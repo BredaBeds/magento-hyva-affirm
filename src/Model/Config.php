@@ -65,6 +65,16 @@ class Config
         return $this->scopeConfig->getValue($path, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
+    /**
+     * Whether affirm.js can work at all: Affirm enabled, a public key for the mode and currency, USD or CAD.
+     */
+    public function canLoadAffirmJs(?int $storeId = null): bool
+    {
+        return $this->isActive($storeId)
+            && $this->isCurrencyValid($storeId)
+            && $this->getPublicApiKey($storeId) !== '';
+    }
+
     public function isActive(?int $storeId = null): bool
     {
         return $this->isFlag(self::PATH_GATEWAY . 'active', $storeId);

@@ -42,7 +42,7 @@ class Availability implements AvailabilityInterface
     public function isAvailable(Placement $placement, ?ProductInterface $product = null): bool
     {
         try {
-            if (!$this->isConfigured()) {
+            if (!$this->config->canLoadAffirmJs()) {
                 return false;
             }
 
@@ -65,16 +65,6 @@ class Availability implements AvailabilityInterface
 
             return false;
         }
-    }
-
-    /**
-     * Requirements shared by every placement.
-     */
-    private function isConfigured(): bool
-    {
-        return $this->config->isActive()
-            && $this->config->getPublicApiKey() !== ''
-            && $this->config->isCurrencyValid();
     }
 
     private function isProductMessageAvailable(?ProductInterface $product): bool

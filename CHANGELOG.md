@@ -5,6 +5,16 @@ All notable changes to this project are documented in this file. The format foll
 
 ## [Unreleased]
 
+### Changed
+
+- `Model\Messaging\PromoId` is no longer `final`, so plugins on `PromoIdInterface` work instead of breaking
+  `setup:di:compile`.
+- The "can affirm.js load" check (Affirm enabled, public key, USD/CAD) lives in one place, `Config::canLoadAffirmJs()`,
+  used by the availability rules and the loader view model.
+- README rewritten in plain language; the technical detail moved to `docs/reference.md`.
+
+## [0.1.0] - 2026-10-08
+
 ### Added
 
 - Product page as-low-as message attached to the product price block, before or after the price or at the end of

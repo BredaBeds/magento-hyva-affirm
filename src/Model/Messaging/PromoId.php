@@ -19,7 +19,7 @@ use Psr\Log\LoggerInterface;
  * config value, then the default). The cart uses Affirm's quote chain, which adds the cart-size rule. Plugins
  * on the helper's public methods therefore apply here too.
  */
-final class PromoId implements PromoIdInterface // phpcs:ignore Magento2.PHP.FinalImplementation.FoundFinal
+class PromoId implements PromoIdInterface
 {
     /** Attributes Affirm selects for its product promo-id collection. */
     private const PRODUCT_ATTRIBUTES = [

@@ -37,9 +37,7 @@ class Sdk implements ArgumentInterface
     public function isConfigured(): bool
     {
         try {
-            return $this->config->isActive()
-                && $this->config->isCurrencyValid()
-                && $this->getLoaderConfig()['public_api_key'] !== '';
+            return $this->config->canLoadAffirmJs();
         } catch (\Throwable $e) {
             $this->logger->warning(
                 'Hyva_AstoundAffirm: affirm.js configuration unavailable.',

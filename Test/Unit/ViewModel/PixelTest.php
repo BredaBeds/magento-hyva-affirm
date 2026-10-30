@@ -99,7 +99,7 @@ class PixelTest extends TestCase
             [false, true, true, false],
         ];
         foreach ($cases as [$enabled, $sandbox, $forced, $expected]) {
-            $config = $this->createMock(Config::class);
+            $config = $this->configMock();
             $config->method('isActive')->willReturn(true);
             $config->method('getPublicApiKey')->willReturn('public-key');
             $config->method('isCurrencyValid')->willReturn(true);
@@ -175,5 +175,20 @@ class PixelTest extends TestCase
         $order->method('getPayment')->willReturn($payment);
 
         return $order;
+    }
+
+    /**
+     * Config mock whose canLoadAffirmJs() stays real: it combines the stubbed isActive, key and currency checks.
+     *
+     * @return Config&MockObject
+     */
+    private function configMock(): Config
+    {
+        $stubbed = array_diff(get_class_methods(Config::class), ['__construct', 'canLoadAffirmJs']);
+
+        return $this->getMockBuilder(Config::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(array_values($stubbed))
+            ->getMock();
     }
 }

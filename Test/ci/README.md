@@ -37,7 +37,7 @@ upstream signature (check the installed Hyvä code), then run `composer dump-aut
 - **js**: `node --test Test/js/*.test.mjs` on Node 20.
 
 Licensed runs (Hyvä integration and Playwright tests on a real store) are not part of public CI; they are
-recorded per release in the module's README.
+summarised in the module's README.
 
 ## Running it locally
 
