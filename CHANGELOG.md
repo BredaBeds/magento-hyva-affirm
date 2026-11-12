@@ -11,7 +11,8 @@ All notable changes to this project are documented in this file. The format foll
   `setup:di:compile`.
 - The "can affirm.js load" check (Affirm enabled, public key, USD/CAD) lives in one place, `Config::canLoadAffirmJs()`,
   used by the availability rules and the loader view model.
-- README rewritten in plain language; the technical detail moved to `docs/reference.md`.
+- README rewritten in plain language and condensed; the technical detail, the differences from Luma, the known
+  Affirm issues and the CSP and accessibility notes are in `docs/reference.md`.
 
 ## [0.1.0] - 2026-10-08
 

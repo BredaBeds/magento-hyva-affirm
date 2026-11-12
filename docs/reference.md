@@ -474,6 +474,52 @@ the page is viewed.
 - The cart page is not full-page cached. The minicart reads the customer section data, not cached HTML.
 - Pages already open in a browser change on their next load.
 
+## Differences from Affirm on Luma
+
+| Topic | Affirm on Luma | This module |
+|---|---|---|
+| Affirm logo not saved | no message renders | uses blue, Affirm's default |
+| Product price below the "minimum amount for promotional pricing" | message never renders | appears once options raise the price above it |
+| Cart message and the product placement setting | hidden unless the product placement is "After Price" (Affirm bug) | independent |
+| Banner element | a link, which leaves the store when clicked | a button that opens Affirm's modal |
+| Home and category banner promo ids | the visitor's financing program, also on cached pages | the dated or default promo id (never visitor data on cached pages) |
+| Loading affirm.js | on page load | after the page is idle, only when needed |
+| Pixel | needs only its own setting | also needs Affirm enabled with a key and USD/CAD |
+
+## Content Security Policy and accessibility
+
+- Affirm's own CSP whitelist covers `*.affirm.com` and `*.affirm.ca`. A cart-button image on another host needs its
+  own `img-src` entry.
+- Every inline script is registered with Hyvä's CSP helper, and the Alpine components work with Hyvä's CSP build.
+- Messages stay hidden from screen readers until affirm.js has filled them. Banners are buttons with
+  `aria-haspopup="dialog"`, and focus returns to the banner when Affirm's modal closes.
+- Messages use the surrounding text colour. If that fails contrast in your theme, style `.hyva-affirm-message`.
+- Messages reserve one line of height to avoid layout shift, and collapse when they are out of range or affirm.js
+  cannot load.
+
+## Known Affirm issues
+
+In Affirm's extension 4.0.11 (this module works around each one unless noted):
+
+- The cart message is hidden when the product placement is not "After Price".
+- `data-affirm-color` is escaped twice in Affirm's templates.
+- "Affirm logo" has no default value, so messages stay off until it is saved.
+- The cart banner's default position matches no option.
+- Affirm's backorder helpers can throw on stores with Inventory (MSI). This module applies the same rule without them.
+- `affirm.analytics.trackOrderConfirmed` (the pixel) only logs "deprecated" in current affirm.js. Luma behaves the
+  same. Consider turning the pixel off until Affirm says otherwise. *Not worked around.*
+
+In affirm.js:
+
+- It does not notice messages or banners added after it loads. The module refreshes it after Hyvä reloads the cart;
+  a site that swaps page content itself calls `window.hyvaAffirm.load().then(() => window.hyvaAffirm.refresh())`.
+- In the sandbox, Affirm's promos API refuses store domains that are not allow-listed on the Affirm account, so
+  messages show generic text. This is an Affirm account setting.
+
+Mixed currencies: Minimum/Maximum Order Total are base-currency amounts. Messages compare them with the displayed
+price, as Affirm's Luma code does. A store whose display currency differs from its base currency can therefore show a
+message for a cart the checkout then refuses.
+
 ## Hyvä and Magento issues
 
 - **Fixed-price bundles (Hyvä default theme 1.5.2):** the bundle price box starts from a final price that already
