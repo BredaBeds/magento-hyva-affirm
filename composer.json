@@ -2,7 +2,7 @@
     "name": "bredabeds/magento-hyva-affirm",
     "description": "Hyvä Theme compatibility for Affirm's Magento 2 extension (affirm/magento2): promotional messaging, banners, cart button and order-confirmed pixel",
     "type": "magento2-module",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "license": "MIT",
     "keywords": [
         "magento2",
